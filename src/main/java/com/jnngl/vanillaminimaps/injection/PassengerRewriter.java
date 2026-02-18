@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2024  JNNGL
+ *  Copyright (C) 2024-2026  JNNGL
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 package com.jnngl.vanillaminimaps.injection;
 
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
@@ -27,9 +28,42 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
 public class PassengerRewriter extends ChannelOutboundHandlerAdapter {
 
+  private static final Constructor<ClientboundSetPassengersPacket> SET_PASSENGERS_CONSTRUCTOR = initSetPassengersConstructor();
   private final Int2ObjectMap<IntList> passengers = new Int2ObjectOpenHashMap<>();
+
+  private static Constructor<ClientboundSetPassengersPacket> initSetPassengersConstructor() {
+    try {
+      Constructor<ClientboundSetPassengersPacket> constructor =
+          ClientboundSetPassengersPacket.class.getDeclaredConstructor(FriendlyByteBuf.class);
+      constructor.setAccessible(true);
+      return constructor;
+    } catch (NoSuchMethodException e) {
+      throw new IllegalStateException("Failed to resolve ClientboundSetPassengersPacket constructor", e);
+    }
+  }
+
+  private static ClientboundSetPassengersPacket rewritePassengers(ClientboundSetPassengersPacket original, IntList extraPassengers)
+      throws InvocationTargetException, InstantiationException, IllegalAccessException {
+    FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+    try {
+      buf.writeVarInt(original.getVehicle());
+      buf.writeVarInt(original.getPassengers().length + extraPassengers.size());
+      for (int passenger : original.getPassengers()) {
+        buf.writeVarInt(passenger);
+      }
+      for (int passenger : extraPassengers) {
+        buf.writeVarInt(passenger);
+      }
+      return SET_PASSENGERS_CONSTRUCTOR.newInstance(buf);
+    } finally {
+      buf.release();
+    }
+  }
 
   @Override
   public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
@@ -38,23 +72,13 @@ public class PassengerRewriter extends ChannelOutboundHandlerAdapter {
       IntList passengers = this.passengers.get(vehicle);
       if (passengers != null) {
         synchronized (passengers) {
-          FriendlyByteBuf buf = new FriendlyByteBuf(ctx.alloc().ioBuffer());
-          buf.writeVarInt(0x65); // Packet ID
-          buf.writeVarInt(packet.getVehicle()); // Vehicle ID
-          buf.writeVarInt(packet.getPassengers().length + passengers.size()); // Passenger count
-          for (int passenger : packet.getPassengers()) {
-            buf.writeVarInt(passenger);
-          }
-          for (int passenger : passengers) {
-            buf.writeVarInt(passenger);
-          }
-          ctx.write(buf);
+          ctx.write(rewritePassengers(packet, passengers), promise);
           return;
         }
       }
     }
 
-    ctx.write(msg);
+    ctx.write(msg, promise);
   }
 
   public Int2ObjectMap<IntList> passengers() {

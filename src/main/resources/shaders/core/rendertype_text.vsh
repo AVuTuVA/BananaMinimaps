@@ -1,9 +1,12 @@
 // Vanilla Minimaps
 // https://github.com/JNNGL/VanillaMinimaps
 
-#version 150
+#version 330
 
-#moj_import <fog.glsl>
+#moj_import <minecraft:fog.glsl>
+#moj_import <minecraft:globals.glsl>
+#moj_import <minecraft:dynamictransforms.glsl>
+#moj_import <minecraft:projection.glsl>
 
 in vec3 Position;
 in vec4 Color;
@@ -13,12 +16,8 @@ in ivec2 UV2;
 uniform sampler2D Sampler0;
 uniform sampler2D Sampler2;
 
-uniform mat4 ModelViewMat;
-uniform mat4 ProjMat;
-uniform vec2 ScreenSize;
-uniform int FogShape;
-
-out float vertexDistance;
+out float sphericalVertexDistance;
+out float cylindricalVertexDistance;
 out vec4 vertexColor;
 out vec2 texCoord0;
 out vec2 texCoord1;
@@ -35,7 +34,9 @@ void main() {
     vec4 vertex = vec4(Position, 1.0);
     vec4 vcolor = Color * texelFetch(Sampler2, UV2 / 16, 0);
     gl_Position = ProjMat * ModelViewMat * vertex;
-    vertexDistance = length(vertex.xyz);
+
+    sphericalVertexDistance = fog_spherical_distance(Position);
+    cylindricalVertexDistance = fog_cylindrical_distance(Position);
 
     #moj_import <minimap/vertex_main.glsl>
 }

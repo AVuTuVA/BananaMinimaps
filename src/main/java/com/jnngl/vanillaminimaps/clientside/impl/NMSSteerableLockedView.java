@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2024  JNNGL
+ *  Copyright (C) 2024-2026  JNNGL
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ public class NMSSteerableLockedView implements SteerableLockedView {
   private static final NonNullList<ItemStack> EMPTY_INVENTORY =
       IntStream.rangeClosed(0, 45).mapToObj(i -> ItemStack.EMPTY)
           .collect(NonNullList::create, NonNullList::add, NonNullList::addAll);
+  private static final ServerEntity.Synchronizer NO_OP_SYNCHRONIZER = NoOpEntitySynchronizer.INSTANCE;
 
   private final Player player;
   protected final ServerPlayer viewer;
@@ -81,7 +82,7 @@ public class NMSSteerableLockedView implements SteerableLockedView {
             viewer.getUUID(), viewer.getGameProfile(),
             false, 0, GameType.CREATIVE, null, false, 0, null)
     )));
-    connection.send(viewer.getAddEntityPacket(new ServerEntity(viewer.serverLevel(), viewer, 0, false, p -> {}, Set.of())));
+    connection.send(viewer.getAddEntityPacket(new ServerEntity(viewer.level(), viewer, 0, false, NO_OP_SYNCHRONIZER, Set.of())));
     connection.send(new ClientboundRotateHeadPacket(viewer, convertAngle(player.getYaw())));
     List<SynchedEntityData.DataValue<?>> metadata = viewer.getEntityData().getNonDefaultValues();
     if (metadata != null && !metadata.isEmpty()) {
@@ -199,7 +200,7 @@ public class NMSSteerableLockedView implements SteerableLockedView {
 
     int stateId = serverPlayer.inventoryMenu.incrementStateId();
     connection.send(new ClientboundContainerSetContentPacket(
-        0, stateId, serverPlayer.inventoryMenu.remoteSlots, serverPlayer.inventoryMenu.getCarried()));
+        0, stateId, serverPlayer.inventoryMenu.getItems(), serverPlayer.inventoryMenu.getCarried()));
 
     connection.send(new ClientboundPlayerInfoUpdatePacket(
         EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_GAME_MODE),

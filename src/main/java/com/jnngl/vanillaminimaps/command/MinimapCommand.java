@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2024  JNNGL
+ *  Copyright (C) 2024-2026  JNNGL
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.selector.EntitySelector;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
 import org.bukkit.entity.Player;
 
 import java.sql.SQLException;
@@ -112,7 +113,7 @@ public class MinimapCommand extends BrigadierCommand {
 
   private static RequiredArgumentBuilder<CommandSourceStack, EntitySelector> targetsExecute(final MultiTargetCommand command) {
     return Commands.argument("targets", EntityArgument.players())
-            .requires(source -> source.hasPermission(2))
+            .requires(source -> source.hasPermission(Permissions.COMMANDS_GAMEMASTER, "vanillaminimaps.command.targets"))
             .executes(context -> command.run(context, EntityArgument.getPlayers(context, "targets")));
   }
 

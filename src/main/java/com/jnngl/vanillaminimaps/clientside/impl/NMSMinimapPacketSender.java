@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2024  JNNGL
+ *  Copyright (C) 2024-2026  JNNGL
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -41,6 +41,8 @@ import java.util.Collections;
 
 public class NMSMinimapPacketSender extends AbstractMinimapPacketSender {
 
+  private static final ServerEntity.Synchronizer NO_OP_SYNCHRONIZER = NoOpEntitySynchronizer.INSTANCE;
+
   private final VanillaMinimaps plugin;
 
   public NMSMinimapPacketSender(VanillaMinimaps plugin) {
@@ -57,7 +59,7 @@ public class NMSMinimapPacketSender extends AbstractMinimapPacketSender {
   private void spawnItemFrame(ServerPlayerConnection connection, ItemFrame itemFrame, double offsetY) {
     ServerPlayer player = connection.getPlayer();
     itemFrame.setPos(player.getX(), player.getY() + offsetY, player.getZ());
-    connection.send(itemFrame.getAddEntityPacket(new ServerEntity((ServerLevel) itemFrame.level(), itemFrame, 0, false, p -> {}, Set.of())));
+    connection.send(itemFrame.getAddEntityPacket(new ServerEntity((ServerLevel) itemFrame.level(), itemFrame, 0, false, NO_OP_SYNCHRONIZER, Set.of())));
     var metadata = itemFrame.getEntityData().getNonDefaultValues();
     if (metadata != null && !metadata.isEmpty()) {
       connection.send(new ClientboundSetEntityDataPacket(itemFrame.getId(), metadata));

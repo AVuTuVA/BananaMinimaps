@@ -1,8 +1,8 @@
 plugins {
     java
-    id("io.papermc.paperweight.userdev").version("2.0.0-beta.8")
-    id("xyz.jpenilla.run-paper").version("2.3.1")
-    id("com.gradleup.shadow").version("9.0.0-beta4")
+    id("io.papermc.paperweight.userdev").version("2.0.0-beta.19")
+    id("xyz.jpenilla.run-paper").version("3.0.2")
+    id("com.gradleup.shadow").version("9.3.1")
 }
 
 group = "com.jnngl"
@@ -23,14 +23,14 @@ repositories {
 }
 
 dependencies {
-    paperweightDevelopmentBundle("io.papermc.paper:dev-bundle:1.21.4-R0.1-SNAPSHOT")
+    paperweightDevelopmentBundle("io.papermc.paper:dev-bundle:1.21.11-R0.1-SNAPSHOT")
     implementation("net.elytrium:serializer:1.1.1")
     implementation("com.jnngl:mapcolor:1.0.1")
-    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
-    annotationProcessor("org.projectlombok:lombok:1.18.30")
-    compileOnly("org.projectlombok:lombok:1.18.30")
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
+    compileOnly("org.projectlombok:lombok:1.18.42")
     implementation("com.j256.ormlite:ormlite-jdbc:6.1")
-    implementation("org.xerial:sqlite-jdbc:3.45.0.0")
+    implementation("org.xerial:sqlite-jdbc:3.51.2.0")
 }
 
 tasks {
@@ -51,8 +51,4 @@ tasks {
             expand("version" to version)
         }
     }
-}
-
-tasks.named("build") {
-    finalizedBy("shadowJar")
 }
