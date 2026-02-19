@@ -19,6 +19,7 @@ package com.jnngl.vanillaminimaps.listener;
 
 import com.jnngl.vanillaminimaps.VanillaMinimaps;
 import com.jnngl.vanillaminimaps.map.renderer.world.cache.WorldMapCache;
+import com.jnngl.vanillaminimaps.util.SchedulerCompat;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -100,40 +101,47 @@ public class MinimapBlockListener implements Listener {
     cache.notifyDirtyArea(block.getWorld(), area);
   }
 
+  private void scheduleUpdate(Block block) {
+    if (block == null) {
+      return;
+    }
+
+    SchedulerCompat.runRegionDelayed(plugin, block.getLocation(), () -> update(block), 1L);
+  }
+
   private void onBlockChange(Event event) {
-    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-      if (event instanceof BlockExplodeEvent explode) {
-        explode.blockList().forEach(this::update);
-      } else if (event instanceof EntityExplodeEvent explode) {
-        explode.blockList().forEach(this::update);
-      } else if (event instanceof EntityChangeBlockEvent changeBlock) {
-        update(changeBlock.getBlock());
-      } else if (event instanceof BlockBurnEvent burn) {
-        update(burn.getIgnitingBlock());
-      } else if (event instanceof BlockFertilizeEvent fertilize) {
-        fertilize.getBlocks().stream()
-            .filter(BlockState::isPlaced)
-            .map(BlockState::getBlock)
-            .forEach(this::update);
-      } else if (event instanceof BlockFromToEvent fromTo) {
-        update(fromTo.getToBlock());
-      } else if (event instanceof BlockIgniteEvent ignite) {
-        update(ignite.getIgnitingBlock());
-      } else if (event instanceof BlockPistonExtendEvent pistonExtend) {
-        pistonExtend.getBlocks().forEach(this::update);
-      } else if (event instanceof BlockPistonRetractEvent pistonRetract) {
-        pistonRetract.getBlocks().forEach(this::update);
-      } else if (event instanceof SpongeAbsorbEvent spongeAbsorb) {
-        spongeAbsorb.getBlocks().stream()
-            .filter(BlockState::isPlaced)
-            .map(BlockState::getBlock)
-            .forEach(this::update);
-      } else if (event instanceof TNTPrimeEvent tntPrime) {
-        update(tntPrime.getPrimingBlock());
-      }
-      if (event instanceof BlockEvent blockEvent) {
-        update(blockEvent.getBlock());
-      }
-    });
+    if (event instanceof BlockExplodeEvent explode) {
+      explode.blockList().forEach(this::scheduleUpdate);
+    } else if (event instanceof EntityExplodeEvent explode) {
+      explode.blockList().forEach(this::scheduleUpdate);
+    } else if (event instanceof EntityChangeBlockEvent changeBlock) {
+      scheduleUpdate(changeBlock.getBlock());
+    } else if (event instanceof BlockBurnEvent burn) {
+      scheduleUpdate(burn.getIgnitingBlock());
+    } else if (event instanceof BlockFertilizeEvent fertilize) {
+      fertilize.getBlocks().stream()
+          .filter(BlockState::isPlaced)
+          .map(BlockState::getBlock)
+          .forEach(this::scheduleUpdate);
+    } else if (event instanceof BlockFromToEvent fromTo) {
+      scheduleUpdate(fromTo.getToBlock());
+    } else if (event instanceof BlockIgniteEvent ignite) {
+      scheduleUpdate(ignite.getIgnitingBlock());
+    } else if (event instanceof BlockPistonExtendEvent pistonExtend) {
+      pistonExtend.getBlocks().forEach(this::scheduleUpdate);
+    } else if (event instanceof BlockPistonRetractEvent pistonRetract) {
+      pistonRetract.getBlocks().forEach(this::scheduleUpdate);
+    } else if (event instanceof SpongeAbsorbEvent spongeAbsorb) {
+      spongeAbsorb.getBlocks().stream()
+          .filter(BlockState::isPlaced)
+          .map(BlockState::getBlock)
+          .forEach(this::scheduleUpdate);
+    } else if (event instanceof TNTPrimeEvent tntPrime) {
+      scheduleUpdate(tntPrime.getPrimingBlock());
+    }
+
+    if (event instanceof BlockEvent blockEvent) {
+      scheduleUpdate(blockEvent.getBlock());
+    }
   }
 }

@@ -26,7 +26,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 
-import java.sql.SQLException;
 import java.util.UUID;
 
 public class LocationPersister extends StringType {

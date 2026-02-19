@@ -8,7 +8,9 @@ import net.elytrium.serializer.annotations.Comment;
 import net.elytrium.serializer.annotations.CommentValue;
 import net.elytrium.serializer.language.object.YamlSerializable;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 
@@ -36,6 +38,10 @@ public class BlockConfig extends YamlSerializable {
   @Getter
   private transient Map<BlockState, MapColor> resolvedOverrides;
 
+  private static MapColor resolveMapColor(BlockState state) {
+    return state.getMapColor(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
+  }
+
   @Override
   public LoadResult reload(Path path) {
     LoadResult result = super.reload(path);
@@ -50,7 +56,7 @@ public class BlockConfig extends YamlSerializable {
             color = MapColor.byId(Integer.parseInt(value));
           } catch (NumberFormatException e) {
             BlockStateParser.BlockResult mapping = BlockStateParser.parseForBlock(lookup, new StringReader(value), false);
-            color = mapping.blockState().getMapColor(null, null);
+            color = resolveMapColor(mapping.blockState());
           }
           resolvedOverrides.put(block.blockState(), color);
         } catch (CommandSyntaxException e) {

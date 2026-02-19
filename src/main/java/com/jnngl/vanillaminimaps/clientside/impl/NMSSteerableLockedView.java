@@ -20,6 +20,7 @@ package com.jnngl.vanillaminimaps.clientside.impl;
 import com.google.common.collect.ImmutableList;
 import com.jnngl.vanillaminimaps.VanillaMinimaps;
 import com.jnngl.vanillaminimaps.clientside.SteerableLockedView;
+import com.jnngl.vanillaminimaps.util.SchedulerCompat;
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.*;
 import net.minecraft.core.NonNullList;
@@ -33,7 +34,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -97,7 +97,7 @@ public class NMSSteerableLockedView implements SteerableLockedView {
 
     inject(connection.connection.channel);
 
-    Bukkit.getScheduler().runTaskLater(VanillaMinimaps.get(), () -> {
+    SchedulerCompat.runEntityDelayed(player, VanillaMinimaps.get(), () -> {
       connection.send(new ClientboundSetCameraPacket(viewer));
       connection.send(new ClientboundSetPassengersPacket(viewer));
       connection.send(new ClientboundPlayerInfoRemovePacket(Collections.singletonList(viewer.getUUID())));
@@ -149,8 +149,8 @@ public class NMSSteerableLockedView implements SteerableLockedView {
               return;
             }
 
-            if (msg instanceof ServerboundPlayerInputPacket packet) {
-              if (packet.input().shift()) {
+            if (msg instanceof ServerboundPlayerInputPacket(var input)) {
+              if (input.shift()) {
                 if (sneakCallback != null) {
                   sneakCallback.accept(null);
                 }
@@ -208,7 +208,7 @@ public class NMSSteerableLockedView implements SteerableLockedView {
     );
     connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, serverPlayer.gameMode.getGameModeForPlayer().getId()));
 
-    Bukkit.getScheduler().runTask(VanillaMinimaps.get(), () -> {
+    SchedulerCompat.runEntity(player, VanillaMinimaps.get(), () -> {
       player.teleport(origin);
       deject(connection.connection.channel);
     });

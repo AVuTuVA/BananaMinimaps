@@ -22,7 +22,9 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerPlayer;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 final class NoOpEntitySynchronizer implements ServerEntity.Synchronizer {
 
   static final NoOpEntitySynchronizer INSTANCE = new NoOpEntitySynchronizer();

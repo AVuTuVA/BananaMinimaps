@@ -26,15 +26,16 @@ import com.jnngl.vanillaminimaps.map.SecondaryMinimapLayer;
 import com.jnngl.vanillaminimaps.map.renderer.MinimapLayerRenderer;
 import com.jnngl.vanillaminimaps.map.renderer.encoder.FullscreenMapEncoder;
 import com.jnngl.vanillaminimaps.map.renderer.world.WorldMinimapRenderer;
+import com.jnngl.vanillaminimaps.util.SchedulerCompat;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import lombok.*;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -66,17 +67,14 @@ public class FullscreenMinimap {
 
   public CompletableFuture<Void> fadeIn(MinimapProvider provider, Function<Double, Double> easing, int duration) {
     CompletableFuture<Void> transitionFuture = new CompletableFuture<>();
-    BukkitTask task = Bukkit.getScheduler().runTaskTimer(VanillaMinimaps.get(), new Runnable() {
-
-      private int tick = 0;
-
-      @Override
-      public void run() {
-        if (++tick > duration) {
+    AtomicInteger tick = new AtomicInteger();
+    ScheduledTask task = SchedulerCompat.runEntityAtFixedRate(holder, VanillaMinimaps.get(), scheduledTask -> {
+        int currentTick = tick.incrementAndGet();
+        if (currentTick > duration) {
           return;
         }
 
-        double transition = (double) tick / duration;
+        double transition = (double) currentTick / duration;
         transition = easing.apply(transition);
 
         FullscreenMinimap.this.transitionState = transition;
@@ -91,11 +89,10 @@ public class FullscreenMinimap {
           provider.packetSender().updateLayer(holder, layer.base(), 0, 0, 128, 1, layerMeta);
         });
 
-        if (tick == duration) {
+        if (currentTick == duration) {
           transitionFuture.complete(null);
         }
-      }
-    }, 0L, 1L);
+    }, () -> transitionFuture.complete(null), 0L, 1L);
 
     return transitionFuture.whenComplete((v, t) -> task.cancel());
   }
@@ -158,7 +155,8 @@ public class FullscreenMinimap {
         });
 
         FullscreenMapEncoder.encodePrimaryLayer(FullscreenMinimap.this, layer, buffer);
-        provider.packetSender().updateLayer(holder, layer.base(), 0, 0, 128, 128, buffer);
+        SchedulerCompat.runEntity(holder, VanillaMinimaps.get(),
+            () -> provider.packetSender().updateLayer(holder, layer.base(), 0, 0, 128, 128, buffer));
       });
     }
 

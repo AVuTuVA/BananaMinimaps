@@ -33,10 +33,10 @@ import com.jnngl.vanillaminimaps.map.renderer.MinimapLayerRenderer;
 import com.jnngl.vanillaminimaps.map.renderer.world.WorldMinimapRenderer;
 import com.jnngl.vanillaminimaps.map.renderer.world.cache.CacheableWorldMinimapRenderer;
 import com.jnngl.vanillaminimaps.map.renderer.MinimapIconRenderer;
+import com.jnngl.vanillaminimaps.util.SchedulerCompat;
 import it.unimi.dsi.fastutil.ints.IntIntImmutablePair;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -48,17 +48,18 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import org.jetbrains.annotations.Nullable;
 
 public class MinimapListener implements Listener {
 
   @Getter
-  private final Map<UUID, Minimap> playerMinimaps = new HashMap<>();
+  private final Map<UUID, Minimap> playerMinimaps = new ConcurrentHashMap<>();
   @Getter
-  private final Map<UUID, FullscreenMinimap> fullscreenMinimaps = new HashMap<>();
-  private final Map<UUID, SteerableLockedView> lockedViews = new HashMap<>();
-  private final Map<UUID, IntIntImmutablePair> playerSections = new HashMap<>();
-  private final Set<UUID> requestedUpdates = new HashSet<>();
+  private final Map<UUID, FullscreenMinimap> fullscreenMinimaps = new ConcurrentHashMap<>();
+  private final Map<UUID, SteerableLockedView> lockedViews = new ConcurrentHashMap<>();
+  private final Map<UUID, IntIntImmutablePair> playerSections = new ConcurrentHashMap<>();
+  private final Set<UUID> requestedUpdates = ConcurrentHashMap.newKeySet();
   private final VanillaMinimaps plugin;
 
   public MinimapListener(VanillaMinimaps plugin) {
@@ -67,13 +68,13 @@ public class MinimapListener implements Listener {
 
   @EventHandler
   public void onJoin(PlayerJoinEvent event) {
-    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+    SchedulerCompat.runEntityDelayed(event.getPlayer(), plugin, () -> {
       try {
         plugin.playerDataStorage().restore(plugin, event.getPlayer());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-    });
+    }, 1L);
   }
 
   public Minimap enableMinimap(Player player) {
@@ -106,11 +107,11 @@ public class MinimapListener implements Listener {
         if (area.x() >= player.getX() - 64 && area.y() >= player.getZ() - 64 &&
             area.x() + area.z() <= player.getX() + 64 && area.y() + area.w() <= player.getZ() + 64 &&
             requestedUpdates.add(player.getUniqueId())) {
-          Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+          SchedulerCompat.runEntityDelayed(player, plugin, () -> {
             if (requestedUpdates.remove(player.getUniqueId())) {
               minimap.update(plugin, player.getX(), player.getZ(), false);
             }
-          });
+          }, 1L);
         }
       });
     }

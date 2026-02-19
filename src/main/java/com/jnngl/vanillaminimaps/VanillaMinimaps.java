@@ -55,8 +55,8 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class VanillaMinimaps extends JavaPlugin implements MinimapProvider, Listener {
@@ -68,7 +68,7 @@ public final class VanillaMinimaps extends JavaPlugin implements MinimapProvider
   }
 
   @Getter
-  private final Map<Player, PassengerRewriter> passengerRewriters = new HashMap<>();
+  private final Map<Player, PassengerRewriter> passengerRewriters = new ConcurrentHashMap<>();
 
   @MonotonicNonNull
   private ClientsideMinimapFactory defaultClientsideMinimapFactory;

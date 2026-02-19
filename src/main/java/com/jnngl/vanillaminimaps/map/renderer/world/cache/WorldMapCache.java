@@ -39,7 +39,7 @@ public class WorldMapCache<R extends CacheableWorldMinimapRenderer> {
   private final Map<UUID, Consumer<Vector4ic>> callbacks = new HashMap<>();
   private final R renderer;
 
-  public static long getKey(World world, int x, int z) {
+  public static synchronized long getKey(World world, int x, int z) {
     int worldId = WORLD_SET.indexOf(world.getUID());
     if (worldId == -1) {
       worldId = WORLD_SET.size();
@@ -48,14 +48,14 @@ public class WorldMapCache<R extends CacheableWorldMinimapRenderer> {
     return (long) worldId << 52 | ((long) (z < 0 ? 1 : 0) << 51) | (long) (Math.abs(z) >> 7) << 26 | ((long) (x < 0 ? 1 : 0) << 25) | (Math.abs(x) >> 7);
   }
 
-  public byte[] getCached(World world, int x, int z) {
+  public synchronized byte[] getCached(World world, int x, int z) {
     int alignedX = (x >> 7) << 7;
     int alignedZ = (z >> 7) << 7;
     long key = getKey(world, alignedX, alignedZ);
     return cache.get(key);
   }
 
-  public byte[] get(World world, int x, int z) {
+  public synchronized byte[] get(World world, int x, int z) {
     int alignedX = (x >> 7) << 7;
     int alignedZ = (z >> 7) << 7;
     long key = getKey(world, alignedX, alignedZ);
@@ -66,24 +66,24 @@ public class WorldMapCache<R extends CacheableWorldMinimapRenderer> {
     });
   }
 
-  public void invalidate(World world, int x, int z) {
+  public synchronized void invalidate(World world, int x, int z) {
     cache.remove(getKey(world, x, z));
   }
 
-  protected void addViewer(long key, UUID viewer) {
+  protected synchronized void addViewer(long key, UUID viewer) {
     viewers.computeIfAbsent(viewer, k -> new LongOpenHashSet()).add(key);
     refCounts.computeIfAbsent(key, k -> new HashSet<>()).add(viewer);
   }
 
-  public void addViewer(World world, int x, int z, UUID viewer) {
+  public synchronized void addViewer(World world, int x, int z, UUID viewer) {
     addViewer(getKey(world, x, z), viewer);
   }
 
-  public void setCallback(UUID viewer, Consumer<Vector4ic> callback) {
+  public synchronized void setCallback(UUID viewer, Consumer<Vector4ic> callback) {
     callbacks.put(viewer, callback);
   }
 
-  protected void removeViewer(long key, UUID viewer) {
+  protected synchronized void removeViewer(long key, UUID viewer) {
     LongSet tracked = viewers.get(viewer);
     if (tracked != null) {
       tracked.remove(key);
@@ -101,11 +101,11 @@ public class WorldMapCache<R extends CacheableWorldMinimapRenderer> {
     }
   }
 
-  public void removeViewer(World world, int x, int z, UUID viewer) {
+  public synchronized void removeViewer(World world, int x, int z, UUID viewer) {
     removeViewer(getKey(world, x, z), viewer);
   }
 
-  public void releaseViewer(UUID viewer) {
+  public synchronized void releaseViewer(UUID viewer) {
     callbacks.remove(viewer);
     LongSet tracked = viewers.remove(viewer);
     if (tracked == null) {
@@ -115,7 +115,7 @@ public class WorldMapCache<R extends CacheableWorldMinimapRenderer> {
     tracked.forEach(key -> removeViewer(key, viewer));
   }
 
-  public void setViewerChunks(UUID viewer, LongCollection keys) {
+  public synchronized void setViewerChunks(UUID viewer, LongCollection keys) {
     LongSet tracked = viewers.get(viewer);
     viewers.put(viewer, new LongOpenHashSet());
     keys.forEach(key -> addViewer(key, viewer));
@@ -128,14 +128,14 @@ public class WorldMapCache<R extends CacheableWorldMinimapRenderer> {
     }
   }
 
-  public void notifyDirtyArea(UUID viewer, Vector4i area) {
+  public synchronized void notifyDirtyArea(UUID viewer, Vector4i area) {
     Consumer<Vector4ic> callback = callbacks.get(viewer);
     if (callback != null) {
       callback.accept(area);
     }
   }
 
-  public void notifyDirtyArea(World world, Vector4i area) {
+  public synchronized void notifyDirtyArea(World world, Vector4i area) {
     int startX = (area.x() >> 7) << 7;
     int startZ = (area.y() >> 7) << 7;
     int endX = ((area.x() + area.z()) >> 7) << 7;
