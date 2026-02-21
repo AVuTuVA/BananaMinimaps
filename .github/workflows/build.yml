@@ -29,11 +29,64 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build
-        run: ./gradlew --no-daemon build shadowJar
+        run: ./gradlew --no-daemon build
 
-      - name: Upload artifact
+      - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
         with:
           name: VanillaMinimaps
           path: build/libs/vanillaminimaps*.jar
           if-no-files-found: error
+
+      - name: Upload resourcepack artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VanillaMinimaps-resourcepack
+          path: build/resourcepack/resourcepack.zip
+          if-no-files-found: error
+
+  prerelease:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download plugin artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: VanillaMinimaps
+          path: dist/plugin
+
+      - name: Download resourcepack artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: VanillaMinimaps-resourcepack
+          path: dist/resourcepack
+
+      - name: Prepare release metadata
+        id: meta
+        run: |
+          echo "short_sha=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+          echo "released_at_msk=$(TZ=Europe/Moscow date +'%Y-%m-%d %H:%M MSK')" >> "$GITHUB_OUTPUT"
+
+      - name: Release the build
+        uses: ncipollo/release-action@v1
+        with:
+          tag: dev-build
+          name: Dev build • ${{ steps.meta.outputs.short_sha }}
+          commit: ${{ github.sha }}
+          prerelease: true
+          allowUpdates: true
+          removeArtifacts: true
+          artifacts: dist/plugin/*.jar,dist/resourcepack/resourcepack.zip
+          body: |
+            Automated rolling pre-release from `main`.
+
+            Commit: [`${{ steps.meta.outputs.short_sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            Author: @${{ github.actor }}
+            Time (MSK): ${{ steps.meta.outputs.released_at_msk }}
+
+            Last commit message:
+            ${{ github.event.head_commit.message }}

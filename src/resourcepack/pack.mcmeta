@@ -1,0 +1,8 @@
+{
+  "pack": {
+    "description": "VanillaMinimaps resource pack",
+    "pack_format": 75,
+    "min_format": 75,
+    "max_format": 75
+  }
+}
