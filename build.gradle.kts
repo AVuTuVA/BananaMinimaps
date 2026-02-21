@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.jnngl"
-version = "1.0.1"
+version = "1.0.2"
 
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 
@@ -46,9 +46,29 @@ tasks {
     }
 
     processResources {
+        inputs.property("version", version)
         filteringCharset = "UTF-8"
         filesMatching("plugin.yml") {
             expand("version" to version)
         }
+    }
+
+    val prepareResourcePack by registering(Sync::class) {
+        into(layout.buildDirectory.dir("resourcepack/staging"))
+
+        from("src/resourcepack") {
+            exclude("**/.DS_Store")
+        }
+    }
+
+    val buildResourcePack by registering(Zip::class) {
+        dependsOn(prepareResourcePack)
+        from(prepareResourcePack)
+        destinationDirectory.set(layout.buildDirectory.dir("resourcepack"))
+        archiveFileName.set("resourcepack.zip")
+    }
+
+    build {
+        dependsOn("shadowJar", buildResourcePack)
     }
 }
